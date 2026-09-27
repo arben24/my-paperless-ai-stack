@@ -1,0 +1,26 @@
+Fasse die folgenden Dokumente zusammen. Extrahiere für jedes Dokument den Korrespondenten,
+das Rechnungsdatum, die Rechnungsnummer und den Gesamtbetrag.
+
+Stelle die Ergebnisse in einer nach Datum sortierten Tabelle dar.
+Berechne abschließend die Summe aller Rechnungsbeträge und gib sie an.
+Überspringe Dokumente, die keine Rechnungen sind.
+
+Antworte auf Deutsch.
+
+<dokumente>
+{{ range .Documents }}
+<dokument>
+    <titel>{{ .Title }}</titel>
+    <inhalt>{{ .Content }}</inhalt>
+    <korrespondent>{{ .Correspondent }}</korrespondent>
+    <dokumenttyp>{{ .DocumentTypeName }}</dokumenttyp>
+    <erstellungsdatum>{{ .CreatedDate }}</erstellungsdatum>
+    {{ range .CustomFields }}
+    <benutzerfeld>
+        <name>{{ .Name }}</name>
+        <wert>{{ .Value }}</wert>
+    </benutzerfeld>
+    {{ end }}
+</dokument>
+{{ end }}
+</dokumente>

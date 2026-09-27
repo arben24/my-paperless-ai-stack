@@ -66,23 +66,52 @@ services:
     restart: unless-stopped
     env_file:
       - ./open-webui/.env
-    depends_on:
-      - ollama
     ports:
       - "3001:8080"
     volumes:
       - ./open-webui/data:/app/backend/data
 
-  # ollama service for local LLMs
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama
-    env_file:
-      - ./ollama/.env
-    volumes:
-      - ./ollama/data/:/root/.ollama
-      - ./ollama/models:/ollama-models
+  # ollama service — DEAKTIVIERT.
+  # Der Stack nutzt die native Windows-Ollama-Installation ueber
+  # http://host.docker.internal:11434. Zwei Ollama-Instanzen haben sich
+  # die 12 GB VRAM der RTX 4070 gegenseitig weggenommen.
+  # Zum Reaktivieren: Block einkommentieren und die Endpunkte in
+  # open-webui/.env, paperless-gpt/.env und den Paperless-KI-Einstellungen
+  # zurueck auf http://ollama:11434 setzen.
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ollama
+  #   env_file:
+  #     - ./ollama/.env
+  #   volumes:
+  #     - ./ollama/data/:/root/.ollama
+  #     - ./ollama/models:/ollama-models
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: all
+  #             capabilities: [gpu]
+
+  # docling-serve — hOCR-faehiger OCR-Provider.
+  # Ollama-Modelle liefern nur reinen Text ohne Positionsangaben; fuer ein
+  # durchsuchbares PDF (und damit den Rueckweg des OCR-Texts nach Paperless)
+  # braucht paperless-gpt hOCR. Docling liefert das.
+  # GPU-Variante: nutzt die RTX 4070 mit. Fuer die CPU-Variante das Image auf
+  # ghcr.io/docling-project/docling-serve-cpu:latest aendern und den
+  # deploy-Block entfernen.
+  docling:
+    image: ghcr.io/docling-project/docling-serve:latest
+    container_name: docling
     restart: unless-stopped
+    env_file:
+      - ./docling/.env
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./docling/data:/opt/app-root/src/.cache/docling/models
     deploy:
       resources:
         reservations:
@@ -91,30 +120,14 @@ services:
               count: all
               capabilities: [gpu]
 
-  # paperless-ai service
-  paperless-ai:
-    image: clusterzx/paperless-ai:latest
-    container_name: paperless-ai
-    restart: unless-stopped
-    depends_on:
-      - ollama
-      - paperless
-    ports:
-      - "3000:3000"
-    env_file:
-      - ./paperless-ai/.env
-    volumes:
-      - ./paperless-ai/data:/app/data
-  
-
   # paperless-gpt service
   paperless-gpt:
     image: icereed/paperless-gpt:latest
     container_name: paperless-gpt
     restart: unless-stopped
     depends_on:
-      - ollama
       - paperless
+      - docling
     ports:
       - "3002:8080"
     env_file:

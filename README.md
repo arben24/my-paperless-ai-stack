@@ -14,7 +14,13 @@ Docker Compose stack for running Paperless-ngx with optional local AI capabiliti
 2. **Edit environment files**
 
    Update passwords and secrets in each service's `.env` file:
-   - `./paperless/.env` - Paperless configuration
+   - `./paperless/.env` - Paperless configuration. `PAPERLESS_SECRET_KEY` is **required**
+     since paperless-ngx 3.0 — generate your own unique value with:
+
+     ```bash
+     python3 -c "import secrets; print(secrets.token_urlsafe(64))"
+     ```
+
    - `./postgres/.env` - Database credentials (must match Paperless config)
    - Other service `.env` files as needed
 
@@ -30,14 +36,18 @@ Docker Compose stack for running Paperless-ngx with optional local AI capabiliti
 
 5. **Optional: Configure AI services**
 
-   For AI features, you'll need to:
-   - Open Open WebUI at <http://localhost:3001> and pull models:
-     - `llama3.2:3b` (lightweight, for metadata suggestions and document reasoning)
-     - `minicpm-v:8b` (vision model, for improved OCR)
-     - These should match the models listed in  `./paperless-ai/.env` and `./paperless-gpt/.env
+   Paperless-ngx 3.x ships its own LLM integration, already wired to Ollama in
+   `./paperless/.env` (`PAPERLESS_AI_*`). Paperless-GPT sits alongside it as an add-on for
+   vision-based OCR.
+
+   - Open Open WebUI at <http://localhost:3001> and pull the models:
+     - a chat model for suggestions/chat (e.g. `gemma4:e4b`)
+     - `embeddinggemma` (embeddings for the built-in LLM index — required when
+       `PAPERLESS_AI_ENABLED=1`)
+     - `minicpm-v:8b` (vision model, for Paperless-GPT's improved OCR)
+     - These must match the model names in `./paperless/.env` and `./paperless-gpt/.env`
    - In Paperless, go to Profile → API Tokens → Generate
-   - Copy the token and add it to `./paperless-ai/.env` and `./paperless-gpt/.env`
-   - Update `./paperless-ai/.env` with Paperless username
+   - Copy the token into `./paperless-gpt/.env`
    - Restart services: `docker compose down && docker compose up -d`
 
 **The AI components are entirely optional** and can be disabled by commenting them out. Paperless works great without AI.
@@ -48,7 +58,6 @@ Docker Compose stack for running Paperless-ngx with optional local AI capabiliti
 | ------- | --- |
 | Paperless-ngx | <http://localhost:8000> |
 | Open WebUI | <http://localhost:3001> |
-| Paperless-AI | <http://localhost:3000> |
 | Paperless-GPT | <http://localhost:3002> |
 | Dozzle (logs) | <http://localhost:8080> |
 
@@ -60,8 +69,8 @@ Docker Compose stack for running Paperless-ngx with optional local AI capabiliti
 - Document conversion and text extraction (Gotenberg, Tika)
 - Optional local AI features:
   - Ollama for local LLM inference
+  - Paperless-ngx's built-in AI (suggestions + document chat), backed by Ollama
   - Open WebUI for model management
-  - Paperless-AI for metadata suggestions
   - Paperless-GPT for vision-based OCR improvements and metadata suggestions
 - Log viewer with Dozzle
 
@@ -98,7 +107,6 @@ This stack is built using these awesome open-source projects:
 - **[Paperless-ngx](https://github.com/paperless-ngx/paperless-ngx)** - Document management system with OCR and search
 - **[Ollama](https://github.com/ollama/ollama)** - Local LLM inference
 - **[Open WebUI](https://github.com/open-webui/open-webui)** - Web interface for Ollama
-- **[Paperless-AI](https://github.com/clusterzx/paperless-ai)** - AI-powered metadata suggestions
 - **[Paperless-GPT](https://github.com/icereed/paperless-gpt)** - Vision OCR for Paperless
 - **[PostgreSQL](https://github.com/postgres/postgres)** - Database system
 - **[Redis](https://github.com/redis/redis)** - Cache and message broker
